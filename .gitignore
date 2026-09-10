@@ -1,0 +1,50 @@
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+.Python
+
+# Distribution and builds
+build/
+dist/
+*.egg-info/
+
+# Environment variables & secrets
+.env
+*.env
+.iids_secret_key
+secret_keys.txt
+secrets.json
+credentials.json
+
+# Databases and persistent forensics storage
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+iids_forensics.db
+
+# Dataset files (track evaluation subset only)
+data/*
+!data/KDDTrain+_20Percent.txt
+
+# Preserve trained model weights
+!model/
+
+# Logs and system artifacts
+logs/
+*.log
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
+
+# IDE & Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo

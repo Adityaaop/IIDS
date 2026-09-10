@@ -1,0 +1,4 @@
+[flake8]
+ignore = W191
+max-line-length = 120
+exclude = .venv,docs,frontend,model,data
