@@ -1,0 +1,25 @@
+# IIDS Core Dependencies
+
+# Data Processing & Visualization
+pandas==2.2.0
+numpy==1.26.4
+matplotlib==3.8.2
+seaborn==0.13.2
+
+# Machine Learning (Stage 1: Random Forest)
+scikit-learn==1.4.0
+
+# Deep Learning (Stage 2: CNN-LSTM)
+# Use a TensorFlow release compatible with current Python versions; 2.20+ is available.
+# If your environment does not support the wheel for your Python, install TensorFlow separately
+# (e.g., via conda or a matching Python version). This relaxed range enables pip to find
+# a compatible build automatically.
+tensorflow>=2.20.0,<2.22.0
+
+# Backend API
+Flask==3.0.1
+Flask-Cors==4.0.0
+gunicorn==21.2.0
+
+# Testing
+pytest>=8.0.0
