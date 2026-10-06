@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IIDS Control Center</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f8fafc;
+      --bg-elevated: #ffffff;
+      --surface: #ffffff;
+      --surface-strong: #f1f5f9;
+      --surface-soft: #f8fafc;
+      --text: #0f172a;
+      --muted: #64748b;
+      --muted-strong: #334155;
+      --border: #e2e8f0;
+      --shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+      --accent: #2563eb;
+      --accent-strong: #1d4ed8;
+      --accent-soft: rgba(37, 99, 235, 0.1);
+      --success: #16a34a;
+      --warning: #ea580c;
+      --danger: #dc2626;
+      --info: #0284c7;
+      --focus: rgba(37, 99, 235, 0.2);
+      --grid: rgba(15, 23, 42, 0.06);
+      --header: rgba(255, 255, 255, 0.95);
+      --sidebar: #ffffff;
+    }
+
+    .dark {
+      color-scheme: dark;
+      --bg: #020617;
+      --bg-elevated: rgba(7, 12, 24, 0.82);
+      --surface: #0b1220;
+      --surface-strong: #11192a;
+      --surface-soft: #132036;
+      --text: #e5eefc;
+      --muted: #8b9bb4;
+      --muted-strong: #c5d0e0;
+      --border: rgba(148, 163, 184, 0.16);
+      --shadow: 0 30px 90px rgba(0, 0, 0, 0.52);
+      --accent: #60a5fa;
+      --accent-strong: #3b82f6;
+      --accent-soft: rgba(96, 165, 250, 0.12);
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --info: #38bdf8;
+      --focus: rgba(96, 165, 250, 0.18);
+      --grid: rgba(148, 163, 184, 0.1);
+      --header: rgba(2, 6, 23, 0.84);
+      --sidebar: rgba(3, 7, 18, 0.9);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      font-family: 'IBM Plex Sans', system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(34, 197, 94, 0.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 24%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg) 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: linear-gradient(to right, var(--grid) 1px, transparent 1px), linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,0.18), transparent 80%);
+      opacity: 0.65;
+      z-index: 0;
+    }
+
+    a, button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .hidden { display: none !important; }
+    .screen { position: relative; z-index: 1; }
+    .glass { background: var(--bg-elevated); backdrop-filter: blur(24px); box-shadow: var(--shadow); border: 1px solid var(--border); }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    .muted { color: var(--muted); }
+
+    .clickable-ip {
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s;
+    }
+    .clickable-ip:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 99999;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+    .modal-card {
+      width: 100%;
+      max-width: 440px;
+      animation: modal-in 0.2s ease-out forwards;
+    }
+    @keyframes modal-in { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+    .shell { display: grid; grid-template-columns: 288px minmax(0, 1fr); min-height: 100vh; position: relative; z-index: 1; }
+    .sidebar { position: sticky; top: 0; height: 100vh; padding: 20px; background: var(--sidebar); border-right: 1px solid var(--border); backdrop-filter: blur(20px); }
+    
+    .brand { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 22px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(37, 99, 235, 0.1)); border: 1px solid var(--border); margin-bottom: 18px; }
+    .brand-mark { width: 52px; height: 52px; border-radius: 18px; display: grid; place-items: center; background: linear-gradient(135deg, var(--accent), var(--info)); color: #fff; box-shadow: 0 14px 30px rgba(34, 197, 94, 0.24); flex: 0 0 auto; }
+    .brand-title { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; }
+    .brand-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 0.84rem; }
+
+    .nav-group { margin-top: 18px; }
+    .nav-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted); margin: 0 0 10px 10px; }
+    .nav-button { width: 100%; display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-radius: 16px; border: 1px solid transparent; color: var(--muted-strong); background: transparent; transition: 180ms ease; text-align: left; margin-bottom: 8px; }
+    .nav-button:hover, .nav-button.active { background: var(--accent-soft); border-color: rgba(34, 197, 94, 0.22); color: var(--text); transform: translateY(-1px); }
+    .nav-icon { width: 18px; height: 18px; flex: 0 0 auto; }
+
+    .sidebar-footer { position: absolute; left: 20px; right: 20px; bottom: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .footer-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); }
+    .user-name { margin: 0; font-weight: 700; font-size: 0.95rem; }
+    .user-role { margin: 4px 0 0; color: var(--muted); font-size: 0.82rem; }
+
+    .main { min-width: 0; }
+    .topbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 24px; background: var(--header); border-bottom: 1px solid var(--border); backdrop-filter: blur(20px); }
+    .topbar-left, .topbar-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .topbar-title { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; }
+    .topbar-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 0.84rem; }
+    .header-stack { min-width: 0; }
+
+    .status-pill, .engine-pill, .mini-pill, .tag, .toast { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 8px 12px; font-size: 0.82rem; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12); }
+
+    .icon-btn, .ghost-btn, .primary-btn, .secondary-btn, .danger-btn { border: 1px solid transparent; border-radius: 14px; transition: 180ms ease; }
+    .icon-btn { width: 44px; height: 44px; display: inline-grid; place-items: center; background: var(--surface); color: var(--text); border-color: var(--border); }
+    .icon-btn:hover, .ghost-btn:hover, .secondary-btn:hover, .primary-btn:hover, .danger-btn:hover { transform: translateY(-1px); }
+
+    .container { padding: 24px; display: grid; gap: 22px; }
+    .section { display: none; animation: fade-in 220ms ease; }
+    .section.active { display: block; }
+    @keyframes fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .page-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+    .page-head h2 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.4rem, 2.5vw, 2rem); }
+    .page-head p { margin: 6px 0 0; color: var(--muted); }
+
+    .panel, .metric-card, .chart-card, .content-card { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow); overflow: hidden; }
+    .panel-pad { padding: 20px; }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+
+    .hero { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(340px, 0.9fr); gap: 18px; align-items: stretch; }
+    .hero-copy { display: grid; gap: 14px; align-content: start; min-height: 100%; background: radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 25%), linear-gradient(180deg, var(--surface), var(--surface-strong)); }
+    .eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font-size: 0.76rem; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700; }
+    .hero-title { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(2rem, 4vw, 3.5rem); line-height: 0.98; letter-spacing: -0.04em; }
+    .hero-description { margin: 0; max-width: 68ch; color: var(--muted); font-size: 1rem; line-height: 1.7; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+    .primary-btn, .secondary-btn, .ghost-btn, .danger-btn { padding: 12px 16px; font-weight: 700; }
+    .primary-btn { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: white; box-shadow: 0 16px 30px rgba(37, 99, 235, 0.2); }
+    .secondary-btn { background: var(--surface-soft); color: var(--text); border-color: var(--border); }
+    .ghost-btn { background: transparent; color: var(--text); border-color: var(--border); }
+    .danger-btn { background: rgba(220, 38, 38, 0.12); color: var(--danger); border-color: rgba(220, 38, 38, 0.2); }
+
+    .mini-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .mini-stat { padding: 16px; border-radius: 18px; border: 1px solid var(--border); background: linear-gradient(180deg, var(--surface), var(--surface-soft)); transition: all 0.3s ease; }
+    .mini-stat:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+    .mini-stat-label { margin: 0; color: var(--muted); font-size: 0.82rem; }
+    .mini-stat-value { margin: 10px 0 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.03em; font-family: 'Space Grotesk', sans-serif; }
+
+    .metric-card { padding: 18px; }
+    .metric-label { margin: 0; color: var(--muted); font-size: 0.82rem; }
+    .metric-value { margin: 12px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.8rem, 3vw, 2.4rem); letter-spacing: -0.04em; }
+    .metric-footnote { margin: 6px 0 0; color: var(--muted); font-size: 0.82rem; }
+
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px 0; }
+    .card-title { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; }
+    .card-subtitle { margin: 6px 0 0; color: var(--muted); font-size: 0.84rem; line-height: 1.5; }
+    .card-body { padding: 18px 20px 20px; }
+    .chart-wrap { height: 340px; position: relative; }
+    .chart-wrap canvas { width: 100% !important; height: 100% !important; cursor: pointer; }
+
+    .table-wrap { overflow: auto; border-radius: 18px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; background: var(--surface); }
+    th, td { padding: 14px 16px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; font-size: 0.92rem; }
+    th { position: sticky; top: 0; background: var(--surface-strong); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem; z-index: 2; }
+    tr:hover td { background: rgba(148, 163, 184, 0.05); }
+
+    .tag-success { background: rgba(34, 197, 94, 0.12); color: var(--success); border-color: rgba(34, 197, 94, 0.22); }
+    .tag-warning { background: rgba(245, 158, 11, 0.14); color: var(--warning); border-color: rgba(245, 158, 11, 0.22); }
+    .tag-danger { background: rgba(239, 68, 68, 0.14); color: var(--danger); border-color: rgba(239, 68, 68, 0.22); }
+    .tag-info { background: rgba(56, 189, 248, 0.14); color: var(--info); border-color: rgba(56, 189, 248, 0.22); }
+
+    .upload-zone { border: 1.5px dashed rgba(148, 163, 184, 0.45); border-radius: 24px; min-height: 250px; display: grid; place-items: center; text-align: center; padding: 28px; background: radial-gradient(circle at top, rgba(34, 197, 94, 0.08), transparent 28%), linear-gradient(180deg, var(--surface), var(--surface-strong)); transition: 180ms ease; }
+    .upload-zone.dragover { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-1px); }
+    .upload-meta { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface-soft); }
+    .file-name { margin: 0; font-weight: 700; }
+    .file-size { margin: 4px 0 0; color: var(--muted); font-size: 0.85rem; }
+
+    .input, .select, .range { width: 100%; box-sizing: border-box; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 12px 14px; outline: none; transition: 180ms ease; }
+    .input:focus, .select:focus, .range:focus { border-color: rgba(37, 99, 235, 0.4); box-shadow: 0 0 0 4px var(--focus); }
+    .range { padding: 0; accent-color: var(--accent); }
+    .field { display: grid; gap: 8px; }
+    .field-label { font-size: 0.84rem; color: var(--muted); }
+
+    .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .switch-row:last-child { border-bottom: 0; }
+    .switch-title { margin: 0; font-weight: 700; }
+    .switch-desc { margin: 4px 0 0; color: var(--muted); font-size: 0.84rem; }
+    .toggle { position: relative; width: 54px; height: 32px; border-radius: 999px; background: var(--surface-soft); border: 1px solid var(--border); flex: 0 0 auto; }
+    .toggle::after { content: ""; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: var(--muted); transition: 180ms ease; }
+    .toggle.on { background: rgba(34, 197, 94, 0.16); border-color: rgba(34, 197, 94, 0.3); }
+    .toggle.on::after { left: 24px; background: var(--accent); }
+
+    .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .profile-list { display: grid; gap: 10px; margin: 0; }
+    .profile-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface-soft); }
+    .profile-key { color: var(--muted); font-size: 0.84rem; }
+    .profile-value { font-weight: 700; text-align: right; }
+
+    .login-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; position: relative; z-index: 1; }
+    .login-top-actions { position: absolute; top: 24px; right: 24px; z-index: 10; }
+    .login-card { width: min(980px, 100%); display: grid; grid-template-columns: 1.05fr 0.95fr; min-height: 600px; overflow: hidden; border-radius: 30px; border: 1px solid var(--border); box-shadow: var(--shadow); background: var(--surface); }
+    .login-art { overflow-y: auto; padding: 36px; background: radial-gradient(circle at top right, rgba(34, 197, 94, 0.16), transparent 28%), linear-gradient(160deg, rgba(34, 197, 94, 0.08), rgba(37, 99, 235, 0.06)); display: grid; align-content: space-between; gap: 22px; min-height: 100%; }
+    .login-art h1 { margin: 12px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(2rem, 5vw, 3.6rem); line-height: 0.95; letter-spacing: -0.05em; }
+    .login-art p { margin: 16px 0 0; color: var(--muted); line-height: 1.7; max-width: 58ch; }
+    .login-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .login-form { padding: 36px; background: var(--surface); display: grid; align-content: center; gap: 18px; }
+    .login-form h2 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; letter-spacing: -0.03em; }
+    .login-note { margin: 0; color: var(--muted); line-height: 1.6; }
+    .login-error { color: var(--danger); font-size: 0.92rem; min-height: 1.2em; }
+
+    .hero-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .compact-list { display: grid; gap: 10px; }
+    .compact-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface-soft); }
+    .kpi-progress { height: 8px; border-radius: 999px; background: var(--surface-soft); overflow: hidden; margin-top: 12px; }
+    .kpi-progress > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--info)); }
+
+    .toast-stack { position: fixed; right: 20px; bottom: 20px; z-index: 9999; display: grid; gap: 10px; }
+    .toast { min-width: 240px; background: var(--surface-strong); border-radius: 12px; padding: 14px 18px; box-shadow: var(--shadow); opacity: 0; transform: translateY(8px); animation: toast-in 180ms ease forwards; border-left: 4px solid var(--accent); }
+    @keyframes toast-in { to { opacity: 1; transform: translateY(0); } }
+    .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .assistant-launcher { position: fixed; right: 20px; bottom: 20px; z-index: 9990; display: inline-flex; align-items: center; gap: 10px; padding: 14px 18px; border-radius: 999px; border: 1px solid rgba(34, 197, 94, 0.28); background: linear-gradient(135deg, var(--accent), var(--info)); color: white; box-shadow: 0 18px 42px rgba(15, 118, 110, 0.28); font-weight: 700; cursor: grab; user-select: none; transition: transform 0.2s; }
+    .assistant-launcher:active { cursor: grabbing; transform: scale(0.95); }
+    .assistant-launcher .pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); animation: pulse-ring 1.8s infinite; }
+    @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.42); } 70% { box-shadow: 0 0 0 12px rgba(22, 163, 74, 0); } 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); } }
+
+    .assistant-panel { position: fixed; z-index: 9990; width: min(420px, calc(100vw - 40px)); max-height: min(640px, calc(100vh - 110px)); display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; border-radius: 28px; border: 1px solid var(--border); background: var(--bg-elevated); backdrop-filter: blur(24px); box-shadow: var(--shadow); }
+    .assistant-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, var(--surface), var(--surface-soft)); }
+    .assistant-title { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1rem; }
+    .assistant-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 0.8rem; }
+    .assistant-body { padding: 14px; display: grid; gap: 12px; overflow: auto; }
+    .assistant-quick-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .assistant-quick-actions button, .assistant-message-suggestion { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 999px; padding: 8px 12px; font-size: 0.8rem; }
+    .assistant-thread { display: grid; gap: 10px; padding-right: 4px; }
+    .assistant-message { max-width: 90%; padding: 12px 14px; border-radius: 18px; line-height: 1.55; font-size: 0.92rem; border: 1px solid var(--border); }
+    .assistant-message.user { margin-left: auto; background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: white; border-color: transparent; }
+    .assistant-message.bot { background: var(--surface); }
+    .assistant-footer { display: grid; gap: 10px; padding: 14px; border-top: 1px solid var(--border); background: linear-gradient(180deg, var(--surface-soft), var(--surface)); }
+    .assistant-input-row { display: flex; gap: 10px; align-items: flex-end; }
+    .assistant-input { flex: 1; min-height: 44px; max-height: 120px; resize: vertical; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 12px 14px; outline: none; line-height: 1.45; }
+    .assistant-input:focus { border-color: rgba(37, 99, 235, 0.4); box-shadow: 0 0 0 4px var(--focus); }
+    .assistant-send { padding: 12px 16px; border-radius: 14px; border: 0; background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: white; font-weight: 700; min-width: 92px; }
+    .assistant-status { color: var(--muted); font-size: 0.76rem; }
+
+    @media (max-width: 1160px) { .shell { grid-template-columns: 1fr; } .sidebar { height: auto; position: static; border-right: 0; border-bottom: 1px solid var(--border); } .sidebar-footer { position: static; left: auto; right: auto; bottom: auto; } .login-card, .hero, .profile-grid, .settings-grid, .login-art { grid-template-columns: 1fr; } .mobile-toggle { display: inline-grid; } }
+    @media (max-width: 760px) { .topbar, .container, .login-form, .login-art { padding: 18px; } .grid-3, .grid-2, .hero-stats, .grid-auto, .mini-grid, .login-metrics { grid-template-columns: 1fr; } .table-wrap table { min-width: 680px; } .topbar-left, .topbar-right { gap: 10px; } }
+  </style>
+</head>
+<body>
+
+  <div id="security-modal" class="modal-overlay hidden">
+    <div class="panel panel-pad modal-card">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+        <div class="icon-btn" style="color:var(--warning); border-color:var(--warning);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
+        <h2 style="margin:0; font-family:'Space Grotesk',sans-serif;">Confirm Block Action</h2>
+      </div>
+      <p class="muted">You are about to block network traffic from the following IP address. This action modifies the active firewall rules.</p>
+      
+      <div class="compact-list" style="margin: 16px 0;">
+        <div class="compact-item"><span class="muted">Target IP</span><span class="mono" id="modal-ip">--</span></div>
+        <div class="compact-item"><span class="muted">Classification</span><span class="tag tag-danger" id="modal-class">--</span></div>
+        <div class="compact-item"><span class="muted">Detection Model</span><span class="mono" id="modal-model">--</span></div>
+        <div class="compact-item"><span class="muted">Confidence</span><span class="mono" id="modal-conf">--</span></div>
+      </div>
+      
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+        <button class="secondary-btn" id="modal-cancel">Cancel</button>
+        <button class="danger-btn" id="modal-confirm">Confirm Block</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="export-modal" class="modal-overlay hidden">
+    <div class="panel panel-pad modal-card">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+        <div class="icon-btn" style="color:var(--info); border-color:var(--info);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></div>
+        <h2 style="margin:0; font-family:'Space Grotesk',sans-serif;">Export Forensic Data</h2>
+      </div>
+      <p class="muted">Select parameters for your CSV report generation.</p>
+      
+      <div class="field" style="margin-top: 16px;">
+        <label class="field-label">Record Limit</label>
+        <select id="export-limit" class="select">
+          <option value="50">Last 50 Records</option>
+          <option value="200">Last 200 Records</option>
+          <option value="1000">Last 1,000 Records</option>
+          <option value="all">All Records</option>
+        </select>
+      </div>
+      
+      <div class="field" style="margin-top: 14px;">
+        <label class="field-label">Threat Filter</label>
+        <select id="export-filter" class="select">
+          <option value="all">All Traffic (Include Normal)</option>
+          <option value="threats">Threats Only (Exclude Normal)</option>
+        </select>
+      </div>
+      
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:24px;">
+        <button class="secondary-btn" id="export-cancel">Cancel</button>
+        <button class="primary-btn" id="export-confirm">Generate CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="login-screen" class="login-screen">
+    <div class="login-top-actions">
+        <button class="icon-btn" id="login-theme-toggle" type="button" aria-label="Toggle theme">☾</button>
+    </div>
+    <div class="login-card glass">
+      <section class="login-art">
+        <div>
+          <div class="eyebrow"><span class="status-dot"></span> Secure Operations Portal</div>
+          <h1>Intelligent Intrusion Detection System</h1>
+          <p>Monitor live traffic, inspect forensic history, and tune the hybrid engine from one authenticated control surface. The interface is session-backed, theme-aware, and linked directly to the Flask backend.</p>
+        </div>
+        <div class="login-metrics">
+          <div class="mini-stat"><p class="mini-stat-label">Detection Core</p><p class="mini-stat-value">RF + CNN-LSTM</p></div>
+          <div class="mini-stat"><p class="mini-stat-label">Storage</p><p class="mini-stat-value">SQLite</p></div>
+          <div class="mini-stat"><p class="mini-stat-label">Dataset</p><p class="mini-stat-value">NSL-KDD</p></div>
+          <div class="mini-stat"><p class="mini-stat-label">Mode</p><p class="mini-stat-value">Hybrid Ops</p></div>
+        </div>
+      </section>
+
+      <section class="login-form">
+        <div>
+          <h2>Admin Sign In</h2>
+          <p class="login-note">Authenticate to access live detections, upload scanning, history, and system settings.</p>
+        </div>
+        <form id="login-form" class="grid-auto" autocomplete="on">
+          <div class="field">
+            <label class="field-label" for="username">Username</label>
+            <input id="username" class="input" type="text" name="username" autocomplete="username" required>
+          </div>
+          <div class="field">
+            <label class="field-label" for="password">Password</label>
+            <input id="password" class="input" type="password" name="password" autocomplete="current-password" required>
+          </div>
+          <button class="primary-btn" type="submit" id="login-submit">Authenticate</button>
+        </form>
+        <div id="login-error" class="login-error"></div>
+        <p class="login-note mono">Session-based auth backed by Flask cookies. Configure credentials via environment variables or the seeded SQLite settings store.</p>
+      </section>
+    </div>
+  </div>
+
+  <div id="app-shell" class="shell hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2 20 6v6c0 5-3.2 8.6-8 10-4.8-1.4-8-5-8-10V6l8-4Z"/>
+            <path d="m8.5 12.5 2.4 2.4 4.6-4.6"/>
+          </svg>
+        </div>
+        <div>
+          <p class="brand-title">IIDS Control Center</p>
+          <p class="brand-subtitle">Enterprise intrusion operations</p>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <p class="nav-label">Views</p>
+        <button class="nav-button active" data-view="dashboard-view"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h8V3H3v10Zm10 8h8V11h-8v10ZM13 3h8v6h-8V3ZM3 17h8v4H3v-4Z"/></svg>Dashboard</button>
+        <button class="nav-button" data-view="traffic-view"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z"/></svg>Network Traffic</button>
+        <button class="nav-button" data-view="history-view"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Forensics / History</button>
+        <button class="nav-button" data-view="settings-view"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M4.9 4.9 7 7m10 10 2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>Settings</button>
+        <button class="nav-button" data-view="profile-view"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>Profile / About</button>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="footer-card">
+          <div class="user-meta">
+            <p class="user-name" id="sidebar-username">Admin</p>
+            <p class="user-role" id="sidebar-role">Security Analyst</p>
+          </div>
+          <button class="danger-btn" id="logout-button" type="button" style="padding: 8px 14px;">Logout</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn mobile-toggle" id="sidebar-toggle" type="button" aria-label="Toggle sidebar">☰</button>
+          <div class="header-stack">
+            <h1 class="topbar-title">Intelligent Intrusion Detection System</h1>
+            <p class="topbar-subtitle" id="topbar-subtitle">Authenticated monitoring dashboard</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <span class="status-pill"><span class="status-dot" id="system-dot"></span><span id="system-status">Online</span></span>
+          <span class="engine-pill" id="engine-pill">Engine: hybrid</span>
+          <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle theme">☾</button>
+        </div>
+      </header>
+
+      <div class="container">
+        <section id="dashboard-view" class="section active">
+          <div class="page-head">
+            <div>
+              <h2>Dashboard</h2>
+              <p>Real-time metrics, threat posture, and live engine telemetry.</p>
+            </div>
+            <div class="hero-actions">
+              <button class="secondary-btn" id="refresh-dashboard" type="button">Refresh Data</button>
+              <button class="primary-btn" id="run-live-feed" type="button">Generate Live Sample</button>
+            </div>
+          </div>
+
+          <div class="hero">
+            <div class="panel panel-pad hero-copy">
+              <div>
+                <div class="eyebrow"><span class="status-dot"></span> Operations Summary</div>
+                <h3 class="hero-title" id="summary-title">Hybrid detection running with session-backed control.</h3>
+                <p class="hero-description" id="summary-description">The dashboard synchronizes live detections, upload scans, and forensic history against the active model engine and threshold settings.</p>
+              </div>
+              <div class="mini-grid">
+                <div class="mini-stat"><p class="mini-stat-label">Packets Scanned</p><p class="mini-stat-value" id="packets-scanned">0</p></div>
+                <div class="mini-stat"><p class="mini-stat-label">Threat Events</p><p class="mini-stat-value" id="threat-events">0</p></div>
+                <div class="mini-stat"><p class="mini-stat-label">Current Engine</p><p class="mini-stat-value" id="summary-engine">hybrid</p></div>
+                <div class="mini-stat"><p class="mini-stat-label">Alert Threshold</p><p class="mini-stat-value" id="summary-threshold">85%</p></div>
+              </div>
+            </div>
+
+            <div class="panel panel-pad">
+              <div class="page-head" style="margin-bottom: 12px; align-items: center;">
+                <div>
+                  <h2 style="font-size: 1.1rem; margin-bottom: 0;">Engine Snapshot</h2>
+                  <p style="margin-top: 6px;">Latest live sample and system status.</p>
+                </div>
+                <span class="mini-pill" id="sample-tag">Waiting</span>
+              </div>
+              <div class="compact-list" id="latest-live-feed">
+                <div class="compact-item"><span class="muted">Live sample</span><span class="mono">No sample yet</span></div>
+                <div class="compact-item"><span class="muted">Confidence</span><span class="mono">--</span></div>
+                <div class="compact-item"><span class="muted">Model used</span><span class="mono">--</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-stats" style="margin-top: 16px;">
+            <div class="metric-card">
+              <p class="metric-label">Total Packets Scanned</p>
+              <p class="metric-value" id="stat-packets">0</p>
+              <p class="metric-footnote">Live traffic and uploaded scans combined.</p>
+              <div class="kpi-progress"><span id="packets-progress" style="width: 18%"></span></div>
+            </div>
+            <div class="metric-card">
+              <p class="metric-label">Active Threats</p>
+              <p class="metric-value" id="stat-threats">0</p>
+              <p class="metric-footnote" id="threat-footnote">All clear.</p>
+              <div class="kpi-progress"><span id="threat-progress" style="width: 8%"></span></div>
+            </div>
+            <div class="metric-card">
+              <p class="metric-label">History Records</p>
+              <p class="metric-value" id="stat-history">0</p>
+              <p class="metric-footnote">Loaded from SQLite forensic log.</p>
+              <div class="kpi-progress"><span id="history-progress" style="width: 28%"></span></div>
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-top: 16px;">
+            <div class="chart-card">
+              <div class="card-head">
+                <div>
+                  <h3 class="card-title">Live Traffic Trend</h3>
+                  <p class="card-subtitle">Rolling sample counts from the current session.</p>
+                </div>
+                <span class="tag tag-info">Realtime</span>
+              </div>
+              <div class="card-body"><div class="chart-wrap"><canvas id="trend-chart"></canvas></div></div>
+            </div>
+            <div class="chart-card">
+              <div class="card-head">
+                <div>
+                  <h3 class="card-title">Threat Distribution</h3>
+                  <p class="card-subtitle">Click a slice to filter forensic history.</p>
+                </div>
+                <span class="tag tag-warning">Live</span>
+              </div>
+              <div class="card-body"><div class="chart-wrap"><canvas id="mix-chart"></canvas></div></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="traffic-view" class="section">
+          <div class="page-head">
+            <div>
+              <h2>Network Traffic</h2>
+              <p>Upload CSV traffic logs or trigger live scans against the selected engine.</p>
+            </div>
+            <span class="tag tag-info" id="traffic-engine-badge">hybrid</span>
+          </div>
+          <div class="grid-2">
+            <div class="content-card panel-pad">
+              <div class="upload-zone" id="upload-zone">
+                <div>
+                  <div class="eyebrow"><span class="status-dot"></span> Premium CSV Scanner</div>
+                  <h3 class="card-title" style="margin-top: 10px; font-size: 1.4rem;">Drag and drop network traffic here</h3>
+                  <p class="card-subtitle">Upload an NSL-KDD-style CSV file for batch scanning. The selected engine and alert threshold are applied automatically.</p>
+                  <div class="hero-actions" style="justify-content: center; margin-top: 16px;">
+                    <select class="select" id="upload-engine-select" style="width: auto; padding: 10px; font-weight: 500;">
+                      <option value="hybrid">Hybrid Engine</option>
+                      <option value="rf_only">RF Only</option>
+                      <option value="cnn_only">CNN Only</option>
+                    </select>
+                    <button class="primary-btn" id="browse-file" type="button">Browse</button>
+                    <button class="secondary-btn" id="scan-file" type="button" disabled>Scan File</button>
+                  </div>
+                  <input id="traffic-file" type="file" accept=".csv" hidden>
+                </div>
+              </div>
+              <div class="upload-meta hidden" id="upload-meta" style="margin-top: 16px;">
+                <div>
+                  <p class="file-name" id="file-name">No file selected</p>
+                  <p class="file-size" id="file-size">0 B</p>
+                </div>
+                <button class="ghost-btn" id="clear-file" type="button">Remove</button>
+              </div>
+              <div class="compact-item" style="margin-top: 16px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span class="mono" id="upload-status">Awaiting CSV input</span>
+                  <button class="ghost-btn hidden" id="download-scan-btn" type="button" style="padding:4px 10px; font-size:0.8rem; border-color:var(--border);">Save Report</button>
+                </div>
+              </div>
+              <p class="card-subtitle" style="text-align: center; margin-top: 10px;">Click a bar in the chart below to filter your history table to that exact threat.</p>
+              <div class="chart-wrap" style="margin-top: 16px; height: 260px;"><canvas id="upload-chart"></canvas></div>
+            </div>
+
+            <div class="content-card panel-pad">
+              <div class="card-head" style="padding: 0 0 14px;">
+                <div>
+                  <h3 class="card-title">Live Feed</h3>
+                  <p class="card-subtitle">Manual trigger for one classified live sample.</p>
+                </div>
+                <button class="ghost-btn" id="live-sample-btn" type="button">Run Now</button>
+              </div>
+              <div class="compact-list" id="live-sample-list">
+                <div class="compact-item"><span class="muted">Timestamp</span><span class="mono" id="live-timestamp">--</span></div>
+                <div class="compact-item"><span class="muted">Source IP</span><span class="mono" id="live-source">--</span></div>
+                <div class="compact-item"><span class="muted">Classification</span><span class="mono" id="live-classification">--</span></div>
+                <div class="compact-item"><span class="muted">Confidence</span><span class="mono" id="live-confidence">--</span></div>
+                <div class="compact-item"><span class="muted">Model used</span><span class="mono" id="live-model">--</span></div>
+              </div>
+              <div class="compact-item" style="margin-top: 16px;">
+                <span class="muted">Latest scan outcome</span>
+                <span class="mono" id="live-outcome">No action yet</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="history-view" class="section">
+          <div class="page-head">
+            <div>
+              <h2>Forensics / History</h2>
+              <p>Persistent SQLite-backed alert records. Click an IP to copy it.</p>
+            </div>
+            <div class="hero-actions"><button class="secondary-btn" id="refresh-history" type="button">Refresh History</button></div>
+          </div>
+          <div class="content-card panel-pad">
+            <div class="table-wrap">
+              <table>
+                <tbody id="history-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="settings-view" class="section">
+          <div class="page-head">
+            <div>
+              <h2>Settings</h2>
+              <p>Configure engine routing, theme, and alert thresholds.</p>
+            </div>
+            <span class="tag tag-success">Persistent</span>
+          </div>
+          <div class="settings-grid">
+            <div class="content-card panel-pad">
+              <h3 class="card-title">Runtime Controls</h3>
+              <p class="card-subtitle">Changes are saved server-side and applied to live inference immediately.</p>
+              <div class="field" style="margin-top: 16px;">
+                <label class="field-label" for="engine-select">Active ML Engine</label>
+                <select class="select" id="engine-select">
+                  <option value="hybrid">Hybrid</option>
+                  <option value="rf_only">Random Forest Only</option>
+                  <option value="cnn_only">CNN-LSTM Only</option>
+                </select>
+              </div>
+              <div class="field" style="margin-top: 14px;">
+                <label class="field-label" for="theme-select">Interface Theme</label>
+                <select class="select" id="theme-select">
+                  <option value="system">System (Auto Match Desktop)</option>
+                  <option value="dark">Dark Theme</option>
+                  <option value="light">Light Theme</option>
+                </select>
+              </div>
+              <div class="field" style="margin-top: 14px;">
+                <label class="field-label" for="threshold-slider">Alert Threshold: <span id="threshold-value">0.85</span></label>
+                <input class="range" type="range" id="threshold-slider" min="0.50" max="0.99" step="0.01" value="0.85">
+              </div>
+              <div class="hero-actions" style="margin-top: 18px;">
+                <button class="primary-btn" id="save-settings" type="button">Save Settings</button>
+                <button class="secondary-btn" id="reset-settings" type="button">Reset View</button>
+              </div>
+            </div>
+            <div class="content-card panel-pad">
+              <h3 class="card-title">Operational Toggles</h3>
+              <p class="card-subtitle">Control UI automation and system readiness.</p>
+              <div class="switch-row"><div><p class="switch-title">System Power (Simulated)</p><p class="switch-desc">Toggle the online/offline status.</p></div><button class="toggle on" id="toggle-power" type="button" aria-pressed="true"></button></div>
+              <div class="switch-row"><div><p class="switch-title">Auto Refresh Dashboard</p><p class="switch-desc">Pull live feed and history on a fixed interval.</p></div><button class="toggle on" id="toggle-auto-refresh" type="button" aria-pressed="true"></button></div>
+              <div class="switch-row"><div><p class="switch-title">Alert Toasts</p><p class="switch-desc">Show high-priority actions and scan outcomes.</p></div><button class="toggle on" id="toggle-alert-toasts" type="button" aria-pressed="true"></button></div>
+            </div>
+            <div class="content-card panel-pad">
+              <h3 class="card-title">Data & Block List</h3>
+              <p class="card-subtitle">Export forensic records to CSV and manage firewall IPs.</p>
+              <div class="field" style="margin-top:16px;">
+                <button class="primary-btn" id="download-dataset" style="max-width: 250px;">Export Forensic Report</button>
+              </div>
+              <hr style="margin:20px 0; border-color: var(--border);"/>
+              <div class="field" style="margin-top:8px;">
+                <label class="field-label">Blocked IPs</label>
+                <div id="blocked-list" style="max-height:160px; overflow:auto; margin-top:8px; border:1px dashed var(--border); padding:8px; border-radius:6px;"></div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                  <input id="block-ip-input" class="input" placeholder="Enter IP address to block...">
+                  <button id="block-ip-button" class="secondary-btn" style="min-width:100px;">Block IP</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="profile-view" class="section">
+          <div class="page-head">
+            <div>
+              <h2>Profile / About</h2>
+              <p>Admin identity and system overview for deployment handoff.</p>
+            </div>
+          </div>
+          <div class="profile-grid">
+            <div class="content-card panel-pad">
+              <div class="brand" style="margin-bottom: 16px;">
+                <div class="brand-mark">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 20 6v6c0 5-3.2 8.6-8 10-4.8-1.4-8-5-8-10V6l8-4Z"/><path d="m8.5 12.5 2.4 2.4 4.6-4.6"/></svg>
+                </div>
+                <div>
+                  <p class="brand-title" id="profile-username">Admin</p>
+                  <p class="brand-subtitle" id="profile-role">Security Analyst</p>
+                </div>
+              </div>
+              <div class="profile-list">
+                <div class="profile-item"><span class="profile-key">Username</span><span class="profile-value" id="profile-username-value">--</span></div>
+                <div class="profile-item"><span class="profile-key">Login Time</span><span class="profile-value" id="profile-login-time">--</span></div>
+                <div class="profile-item"><span class="profile-key">Active Engine</span><span class="profile-value" id="profile-engine">--</span></div>
+                <div class="profile-item"><span class="profile-key">Alert Threshold</span><span class="profile-value" id="profile-threshold">--</span></div>
+              </div>
+            </div>
+            <div class="content-card panel-pad">
+              <h3 class="card-title">System Summary</h3>
+              <p class="card-subtitle">Deployment details and platform metadata.</p>
+              <div class="profile-list" style="margin-top: 14px;">
+                <div class="profile-item"><span class="profile-key">Project</span><span class="profile-value">IIDS</span></div>
+                <div class="profile-item"><span class="profile-key">Backend</span><span class="profile-value">Flask / Python</span></div>
+                <div class="profile-item"><span class="profile-key">Database</span><span class="profile-value">SQLite</span></div>
+                <div class="profile-item"><span class="profile-key">Models</span><span class="profile-value">Random Forest + CNN-LSTM</span></div>
+                <div class="profile-item"><span class="profile-key">Dataset</span><span class="profile-value">NSL-KDD</span></div>
+              </div>
+              <div class="hero-actions" style="margin-top: 16px;">
+                <button class="secondary-btn" id="reload-app" type="button">Reload Session</button>
+                <button class="danger-btn" id="profile-logout" type="button">Logout</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-stack" id="toast-stack"></div>
+
+  <button class="assistant-launcher" id="assistant-launcher" type="button" aria-label="Open SOC Security Assistant">
+    <span class="pulse"></span>
+    SOC Assistant
+  </button>
+
+  <div class="assistant-panel hidden" id="assistant-panel" aria-live="polite">
+    <div class="assistant-header">
+      <div>
+        <p class="assistant-title">SOC Security Assistant</p>
+        <p class="assistant-subtitle">Interactive threat reference, cybersecurity terms, and dashboard guidance.</p>
+      </div>
+      <button class="ghost-btn" id="assistant-close" type="button">Close</button>
+    </div>
+    <div class="assistant-body">
+      <div class="assistant-quick-actions">
+        <button type="button" class="assistant-message-suggestion" data-prompt="What is a DoS attack?">What is a DoS attack?</button>
+        <button type="button" class="assistant-message-suggestion" data-prompt="How do I upload a CSV?">How do I upload a CSV?</button>
+        <button type="button" class="assistant-message-suggestion" data-prompt="How do I change the engine?">How do I change the engine?</button>
+        <button type="button" class="assistant-message-suggestion" data-prompt="What does CNN-LSTM mean?">What does CNN-LSTM mean?</button>
+      </div>
+      <div class="assistant-thread" id="assistant-thread"></div>
+    </div>
+    <div class="assistant-footer">
+      <div class="assistant-input-row">
+        <textarea id="assistant-input" class="assistant-input" rows="2" placeholder="Ask about the dashboard, models, or cybersecurity terms..."></textarea>
+        <button class="assistant-send" id="assistant-send" type="button">Send</button>
+      </div>
+      <div class="assistant-status" id="assistant-status">Offline guidance mode. Responses are generated locally.</div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      blockedIPs: [],
+      authenticated: false,
+      user: null,
+      settings: { engine: 'hybrid', theme: 'system', alert_threshold: 0.85 },
+      topbarSubtitle: 'Authenticated monitoring dashboard',
+      profile: null,
+      status: null,
+      history: [],
+      liveSeries: [28, 34, 31, 41, 38, 44, 48, 42, 45, 52, 56, 49],
+      alertSeries: { Normal: 72, DoS: 12, Probe: 8, R2L: 5, U2R: 3 },
+      packetsScanned: 1247800,
+      threatEvents: 0,
+      liveFeedTimer: null,
+      historyTimer: null,
+      toggles: { autoRefresh: true, alertToasts: true, power: true },
+      charts: { trend: null, mix: null, upload: null },
+      files: { selected: null },
+      lastScanData: null,
+      assistant: { open: false, messages: [] },
+      targetIPToBlock: null
+    };
+
+    const dom = {
+      loginScreen: document.getElementById('login-screen'),
+      appShell: document.getElementById('app-shell'),
+      loginForm: document.getElementById('login-form'),
+      loginError: document.getElementById('login-error'),
+      loginSubmit: document.getElementById('login-submit'),
+      loginUsername: document.getElementById('username'),
+      loginPassword: document.getElementById('password'),
+      themeToggle: document.getElementById('theme-toggle'),
+      loginThemeToggle: document.getElementById('login-theme-toggle'),
+      logoutButtons: [document.getElementById('logout-button'), document.getElementById('profile-logout')],
+      sidebarToggle: document.getElementById('sidebar-toggle'),
+      navButtons: Array.from(document.querySelectorAll('.nav-button')),
+      views: Array.from(document.querySelectorAll('.section')),
+      enginePill: document.getElementById('engine-pill'),
+      systemStatus: document.getElementById('system-status'),
+      systemDot: document.getElementById('system-dot'),
+      topbarSubtitle: document.getElementById('topbar-subtitle'),
+      sidebarUsername: document.getElementById('sidebar-username'),
+      sidebarRole: document.getElementById('sidebar-role'),
+      packetsScanned: document.getElementById('packets-scanned'),
+      threatEvents: document.getElementById('threat-events'),
+      summaryEngine: document.getElementById('summary-engine'),
+      summaryThreshold: document.getElementById('summary-threshold'),
+      summaryTitle: document.getElementById('summary-title'),
+      summaryDescription: document.getElementById('summary-description'),
+      sampleTag: document.getElementById('sample-tag'),
+      latestLiveFeed: document.getElementById('latest-live-feed'),
+      statPackets: document.getElementById('stat-packets'),
+      statThreats: document.getElementById('stat-threats'),
+      statHistory: document.getElementById('stat-history'),
+      packetsProgress: document.getElementById('packets-progress'),
+      threatProgress: document.getElementById('threat-progress'),
+      historyProgress: document.getElementById('history-progress'),
+      threatFootnote: document.getElementById('threat-footnote'),
+      trafficEngineBadge: document.getElementById('traffic-engine-badge'),
+      downloadDataset: document.getElementById('download-dataset'),
+      blockedList: document.getElementById('blocked-list'),
+      blockIpInput: document.getElementById('block-ip-input'),
+      blockIpButton: document.getElementById('block-ip-button'),
+      uploadZone: document.getElementById('upload-zone'),
+      trafficFile: document.getElementById('traffic-file'),
+      browseFile: document.getElementById('browse-file'),
+      scanFile: document.getElementById('scan-file'),
+      clearFile: document.getElementById('clear-file'),
+      uploadMeta: document.getElementById('upload-meta'),
+      fileName: document.getElementById('file-name'),
+      fileSize: document.getElementById('file-size'),
+      uploadStatus: document.getElementById('upload-status'),
+      uploadEngineSelect: document.getElementById('upload-engine-select'),
+      downloadScanBtn: document.getElementById('download-scan-btn'),
+      uploadOutcome: document.getElementById('live-outcome'),
+      liveTimestamp: document.getElementById('live-timestamp'),
+      liveSource: document.getElementById('live-source'),
+      liveClassification: document.getElementById('live-classification'),
+      liveConfidence: document.getElementById('live-confidence'),
+      liveModel: document.getElementById('live-model'),
+      liveSampleBtn: document.getElementById('live-sample-btn'),
+      runLiveFeedBtn: document.getElementById('run-live-feed'),
+      refreshDashboardBtn: document.getElementById('refresh-dashboard'),
+      refreshHistoryBtn: document.getElementById('refresh-history'),
+      historyTable: document.getElementById('history-table'),
+      settingsEngine: document.getElementById('engine-select'),
+      settingsTheme: document.getElementById('theme-select'),
+      settingsThreshold: document.getElementById('threshold-slider'),
+      thresholdValue: document.getElementById('threshold-value'),
+      saveSettings: document.getElementById('save-settings'),
+      resetSettings: document.getElementById('reset-settings'),
+      toggleAutoRefresh: document.getElementById('toggle-auto-refresh'),
+      toggleAlertToasts: document.getElementById('toggle-alert-toasts'),
+      togglePower: document.getElementById('toggle-power'),
+      profileUsername: document.getElementById('profile-username'),
+      profileRole: document.getElementById('profile-role'),
+      profileUsernameValue: document.getElementById('profile-username-value'),
+      profileLoginTime: document.getElementById('profile-login-time'),
+      profileEngine: document.getElementById('profile-engine'),
+      profileThreshold: document.getElementById('profile-threshold'),
+      reloadApp: document.getElementById('reload-app'),
+      assistantLauncher: document.getElementById('assistant-launcher'),
+      assistantPanel: document.getElementById('assistant-panel'),
+      assistantClose: document.getElementById('assistant-close'),
+      assistantThread: document.getElementById('assistant-thread'),
+      assistantInput: document.getElementById('assistant-input'),
+      assistantSend: document.getElementById('assistant-send'),
+      assistantPrompts: Array.from(document.querySelectorAll('.assistant-message-suggestion')),
+      toastStack: document.getElementById('toast-stack'),
+      trendChart: document.getElementById('trend-chart'),
+      mixChart: document.getElementById('mix-chart'),
+      uploadChart: document.getElementById('upload-chart'),
+      securityModal: document.getElementById('security-modal'),
+      modalIp: document.getElementById('modal-ip'),
+      modalClass: document.getElementById('modal-class'),
+      modalModel: document.getElementById('modal-model'),
+      modalConf: document.getElementById('modal-conf'),
+      modalCancel: document.getElementById('modal-cancel'),
+      modalConfirm: document.getElementById('modal-confirm')
+    };
+
+    function formatDateTime(value) {
+      if (!value) return '--';
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? value : date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'medium' });
+    }
+
+    function formatConfidence(value) {
+      if (value === null || value === undefined || value === '') return '--';
+      const number = Number(value);
+      return Number.isNaN(number) ? String(value) : `${(number * 100).toFixed(2)}%`;
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes) return '0 B';
+      const units = ['B', 'KB', 'MB', 'GB'];
+      const index = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
+      return `${(bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
+    }
+
+    function normalizeRecord(record) {
+      return {
+        timestamp: record.timestamp || record.time || '--',
+        sourceIP: record.sourceIP || record.source_ip || '--',
+        protocol: record.protocol || '--',
+        classification: record.classification || '--',
+        confidence: record.confidence,
+        model_used: record.model_used || record.modelUsed || '--'
+      };
+    }
+
+    function setLoginError(message) {
+      dom.loginError.textContent = message || '';
+    }
+
+    function toast(message, kind = 'success') {
+      if (!message || !state.toggles.alertToasts) return;
+      const node = document.createElement('div');
+      node.className = 'toast';
+      node.textContent = message;
+      node.style.borderLeftColor = kind === 'error' ? 'var(--danger)' : 'var(--success)';
+      dom.toastStack.appendChild(node);
+      setTimeout(() => node.remove(), 2500);
+    }
+
+    async function apiFetch(url, options = {}) {
+      const isFormData = options.body instanceof FormData;
+      const response = await fetch(url, {
+        credentials: 'same-origin',
+        ...options,
+        headers: isFormData ? (options.headers || {}) : {
+          'Content-Type': 'application/json',
+          ...(options.headers || {})
+        }
+      });
+      if (response.status === 401) {
+        await showLoginScreen('Session expired. Please sign in again.');
+        throw new Error('Authentication required');
+      }
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.message || `Request failed with status ${response.status}`);
+      return payload;
+    }
+
+    function getTextColor() { return getComputedStyle(document.documentElement).getPropertyValue('--text').trim(); }
+    function getMutedColor() { return getComputedStyle(document.documentElement).getPropertyValue('--muted').trim(); }
+    function getGridColor() { return getComputedStyle(document.documentElement).getPropertyValue('--grid').trim(); }
+    function getSurfaceColor() { return getComputedStyle(document.documentElement).getPropertyValue('--surface').trim(); }
+
+    function applyTheme(themeOption) {
+      let resolved = themeOption;
+      if (themeOption === 'system') {
+        resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.classList.toggle('dark', resolved === 'dark');
+      dom.themeToggle.textContent = resolved === 'dark' ? '☾' : '☀';
+      dom.loginThemeToggle.textContent = resolved === 'dark' ? '☾' : '☀';
+      dom.settingsTheme.value = themeOption;
+      state.settings.theme = themeOption;
+      localStorage.setItem('iids-theme', themeOption);
+      refreshChartStyles();
+    }
+    
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (state.settings.theme === 'system') applyTheme('system');
+    });
+
+    function cycleTheme() {
+      const current = state.settings.theme;
+      const next = current === 'dark' ? 'light' : (current === 'light' ? 'system' : 'dark');
+      applyTheme(next);
+      if(state.authenticated) {
+        apiFetch('/api/settings', { method: 'POST', body: JSON.stringify({ theme: next }) }).catch(()=>{});
+        toast(`Theme set to ${next}`);
+      }
+    }
+
+    function updateEngineBadges() {
+      dom.enginePill.textContent = `Engine: ${state.settings.engine}`;
+      dom.trafficEngineBadge.textContent = state.settings.engine;
+      dom.summaryEngine.textContent = state.settings.engine;
+      dom.profileEngine.textContent = state.settings.engine;
+    }
+
+    function updateThresholdDisplay() {
+      dom.thresholdValue.textContent = Number(state.settings.alert_threshold).toFixed(2);
+      dom.summaryThreshold.textContent = `${Math.round(Number(state.settings.alert_threshold) * 100)}%`;
+      dom.profileThreshold.textContent = `${Math.round(Number(state.settings.alert_threshold) * 100)}%`;
+      dom.settingsThreshold.value = Number(state.settings.alert_threshold).toFixed(2);
+    }
+
+    function updateTopbarSubtitle() {
+      const now = new Date();
+      dom.topbarSubtitle.textContent = `${state.topbarSubtitle} · ${now.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+    }
+
+    function renderAuthState(authenticated) {
+      state.authenticated = authenticated;
+      dom.loginScreen.classList.toggle('hidden', authenticated);
+      dom.appShell.classList.toggle('hidden', !authenticated);
+      document.body.style.overflow = authenticated ? 'auto' : 'hidden';
+    }
+
+    async function showLoginScreen(message) {
+      stopTimers();
+      renderAuthState(false);
+      setLoginError(message || '');
+      state.user = null;
+      state.profile = null;
+      toggleAssistant(false);
+      dom.loginSubmit.disabled = false;
+      dom.loginSubmit.textContent = 'Authenticate';
+    }
+
+    function setCurrentUser(user) {
+      state.user = user;
+      const username = user?.username || 'Admin';
+      const role = user?.role || 'Security Analyst';
+      dom.sidebarUsername.textContent = username;
+      dom.sidebarRole.textContent = role;
+      dom.profileUsername.textContent = username;
+      dom.profileRole.textContent = role;
+      dom.profileUsernameValue.textContent = username;
+    }
+
+    function setStatusBadge(online) {
+      dom.systemStatus.textContent = online ? 'Online' : 'Offline';
+      dom.systemDot.style.background = online ? 'var(--success)' : 'var(--danger)';
+    }
+
+    function setActiveView(viewId) {
+      dom.views.forEach((section) => section.classList.toggle('active', section.id === viewId));
+      dom.navButtons.forEach((button) => button.classList.toggle('active', button.dataset.view === viewId));
+    }
+
+    function updateHistoryMetrics() {
+      dom.statHistory.textContent = state.history.length.toLocaleString();
+      dom.historyProgress.style.width = `${Math.min(100, 24 + state.history.length)}%`;
+    }
+
+    function updatePacketMetrics(delta = 0) {
+      if(!state.toggles.power) return;
+      state.packetsScanned += delta;
+      dom.packetsScanned.textContent = state.packetsScanned.toLocaleString();
+      dom.statPackets.textContent = state.packetsScanned.toLocaleString();
+      dom.packetsProgress.style.width = `${Math.min(100, 18 + ((state.packetsScanned % 1000) / 1000) * 72)}%`;
+    }
+
+    function updateThreatSummary() {
+      const totalThreats = Math.max(0, state.history.filter((entry) => entry.classification !== 'Normal').length);
+      state.threatEvents = totalThreats;
+      dom.threatEvents.textContent = totalThreats.toLocaleString();
+      dom.statThreats.textContent = totalThreats.toLocaleString();
+      dom.threatFootnote.textContent = totalThreats === 0 ? 'All clear.' : `${totalThreats} non-normal events in the loaded history.`;
+      dom.threatProgress.style.width = `${Math.min(100, totalThreats * 8 + 8)}%`;
+    }
+
+    function renderHistoryTable(items) {
+      dom.historyTable.innerHTML = '';
+      const rows = items.map(normalizeRecord);
+      
+      const headerRow = document.createElement('tr');
+      headerRow.innerHTML = '<th>Timestamp</th><th>Source IP</th><th>Protocol</th><th>Classification</th><th>Confidence</th><th>Model</th><th>Action</th>';
+      dom.historyTable.appendChild(headerRow);
+
+      if (rows.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="7" class="muted" style="text-align:center;">No history records available.</td>';
+        dom.historyTable.appendChild(tr);
+        return;
+      }
+      
+      for (const entry of rows) {
+        const row = document.createElement('tr');
+        const confidence = Number(entry.confidence);
+        const tagClass = entry.classification === 'Normal' ? 'tag-success' : (entry.classification === 'DoS' || entry.classification === 'U2R' ? 'tag-danger' : 'tag-warning');
+        
+        const isBlocked = state.blockedIPs ? state.blockedIPs.includes(entry.sourceIP) : false;
+        const actionText = isBlocked ? 'Unblock' : 'Block';
+        const actionClass = isBlocked ? 'danger-btn' : 'secondary-btn';
+        const actionType = isBlocked ? 'unblock' : 'block';
+
+        const safeData = `data-ip="${entry.sourceIP}" data-proto="${entry.protocol}" data-class="${entry.classification}" data-conf="${Number.isNaN(confidence) ? '--' : formatConfidence(confidence)}" data-mod="${entry.model_used}"`;
+
+        row.innerHTML = `
+          <td>${formatDateTime(entry.timestamp)}</td>
+          <td class="mono clickable-ip" data-ip="${entry.sourceIP}" title="Click to copy IP">${entry.sourceIP}</td>
+          <td><span class="tag tag-info">${entry.protocol}</span></td>
+          <td><span class="tag ${tagClass}">${entry.classification}</span></td>
+          <td>${Number.isNaN(confidence) ? '--' : formatConfidence(confidence)}</td>
+          <td>${entry.model_used}</td>
+          <td>
+            <button class="${actionClass}" ${safeData} data-action="${actionType}" style="min-width: 90px; padding:4px 8px; font-size:0.75rem;">${actionText}</button>
+          </td>
+        `;
+        dom.historyTable.appendChild(row);
+      }
+    }
+
+    function renderLiveSnapshot(snapshot) {
+      const record = normalizeRecord(snapshot || {});
+      dom.liveTimestamp.textContent = formatDateTime(record.timestamp);
+      dom.liveSource.textContent = record.sourceIP;
+      dom.liveClassification.textContent = record.classification;
+      dom.liveConfidence.textContent = formatConfidence(record.confidence);
+      dom.liveModel.textContent = record.model_used;
+      dom.sampleTag.textContent = record.classification || 'Waiting';
+      dom.uploadOutcome.textContent = `${record.classification} via ${record.model_used}`;
+      
+      let blockBtnHtml = '';
+      if(record.classification !== 'Normal' && record.classification !== '--') {
+         blockBtnHtml = `<button class="danger-btn" style="padding:4px 8px; font-size:0.75rem;" onclick="openSecurityModal('${record.sourceIP}','${record.protocol}','${record.classification}','${formatConfidence(record.confidence)}','${record.model_used}')">Block IP</button>`;
+      }
+
+      dom.latestLiveFeed.innerHTML = `
+        <div class="compact-item"><span class="muted">Live sample</span><span class="mono">${record.sourceIP}</span></div>
+        <div class="compact-item"><span class="muted">Confidence</span><div style="display:flex; gap:10px; align-items:center;"><span class="mono">${formatConfidence(record.confidence)}</span> ${blockBtnHtml}</div></div>
+        <div class="compact-item"><span class="muted">Model used</span><span class="mono">${record.model_used}</span></div>
+      `;
+    }
+
+    // MASTER CHART ROUTING LOGIC
+    function filterAndRouteToHistory(label) {
+      // 1. Pause Auto-Refresh if it is running so the IPs don't disappear
+      if (state.toggles.autoRefresh) {
+        dom.toggleAutoRefresh.click(); // Safely triggers updateToggleState
+      }
+      // 2. Switch the screen to the History Tab
+      setActiveView('history-view');
+      // 3. Filter the table
+      const filtered = state.history.filter((r) => (r.classification || '').toString() === label);
+      renderHistoryTable(filtered);
+      // 4. Alert the user
+      toast(`Filtered to ${label}. Auto-refresh paused for inspection.`);
+    }
+
+    function ensureCharts() {
+      if (!state.charts.trend) {
+        state.charts.trend = new Chart(dom.trendChart, {
+          type: 'line',
+          data: { labels: Array.from({ length: state.liveSeries.length }, (_, index) => index + 1), datasets: [{ label: 'Samples', data: state.liveSeries, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(), backgroundColor: 'rgba(37,99,235,0.1)', fill: true, tension: 0.35, pointRadius: 2, pointHoverRadius: 5 }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: getTextColor() } } }, scales: { x: { ticks: { color: getMutedColor() }, grid: { color: getGridColor() } }, y: { ticks: { color: getMutedColor() }, grid: { color: getGridColor() } } } }
+        });
+      }
+      if (!state.charts.mix) {
+        state.charts.mix = new Chart(dom.mixChart, {
+          type: 'doughnut',
+          data: { labels: Object.keys(state.alertSeries), datasets: [{ data: Object.values(state.alertSeries), backgroundColor: ['#16a34a', '#dc2626', '#ea580c', '#f97316', '#0ea5e9'], borderColor: getSurfaceColor(), borderWidth: 2, hoverOffset: 10 }] },
+          options: { 
+            responsive: true, maintainAspectRatio: false, cutout: '66%', plugins: { legend: { labels: { color: getTextColor() } } }, 
+            onClick(evt, elements) { 
+              if (!elements || elements.length === 0) return; 
+              filterAndRouteToHistory(this.data.labels[elements[0].index]); 
+            } 
+          }
+        });
+      }
+      if (!state.charts.upload) {
+        state.charts.upload = new Chart(dom.uploadChart, {
+          type: 'bar',
+          data: { labels: ['Normal', 'DoS', 'Probe', 'R2L', 'U2R'], datasets: [{ label: 'Detections', data: [0, 0, 0, 0, 0], backgroundColor: ['#16a34a', '#dc2626', '#ea580c', '#f97316', '#0ea5e9'], borderRadius: 10, borderSkipped: false }] },
+          options: { 
+            responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: getTextColor() } } }, scales: { x: { ticks: { color: getMutedColor() }, grid: { color: getGridColor() } }, y: { beginAtZero: true, ticks: { color: getMutedColor() }, grid: { color: getGridColor() } } },
+            onClick(evt, elements) { 
+              if (!elements || elements.length === 0) return; 
+              filterAndRouteToHistory(this.data.labels[elements[0].index]); 
+            }
+          }
+        });
+      }
+    }
+
+    function refreshChartStyles() {
+      if (state.charts.trend) { state.charts.trend.options.plugins.legend.labels.color = getTextColor(); state.charts.trend.options.scales.x.ticks.color = getMutedColor(); state.charts.trend.options.scales.x.grid.color = getGridColor(); state.charts.trend.options.scales.y.ticks.color = getMutedColor(); state.charts.trend.options.scales.y.grid.color = getGridColor(); state.charts.trend.data.datasets[0].borderColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); state.charts.trend.data.datasets[0].backgroundColor = 'rgba(37,99,235,0.1)'; state.charts.trend.update('none'); }
+      if (state.charts.mix) { state.charts.mix.options.plugins.legend.labels.color = getTextColor(); state.charts.mix.data.datasets[0].borderColor = getSurfaceColor(); state.charts.mix.update('none'); }
+      if (state.charts.upload) { state.charts.upload.options.plugins.legend.labels.color = getTextColor(); state.charts.upload.options.scales.x.ticks.color = getMutedColor(); state.charts.upload.options.scales.x.grid.color = getGridColor(); state.charts.upload.options.scales.y.ticks.color = getMutedColor(); state.charts.upload.options.scales.y.grid.color = getGridColor(); state.charts.upload.update('none'); }
+    }
+
+    function updateLiveSeries() {
+      if(!state.toggles.power) return;
+      const last = state.liveSeries[state.liveSeries.length - 1] || 40;
+      const next = Math.max(22, Math.min(92, last + Math.round((Math.random() - 0.5) * 14)));
+      state.liveSeries.push(next);
+      if (state.liveSeries.length > 12) state.liveSeries.shift();
+      dom.summaryTitle.textContent = next > 70 ? 'Traffic intensity rising. Hybrid engine is actively triaging samples.' : 'Hybrid detection running with session-backed control.';
+      dom.summaryDescription.textContent = next > 70 ? 'Packet volume is elevated. Review the history pane and uploaded CSV findings for clustered anomalies.' : 'The dashboard synchronizes live detections, upload scans, and forensic history against the active model engine and threshold settings.';
+      if (state.charts.trend) {
+        state.charts.trend.data.datasets[0].data = state.liveSeries;
+        state.charts.trend.update('none');
+      }
+    }
+
+    async function loadSession() {
+      const me = await apiFetch('/api/me');
+      if (!me.authenticated) { await showLoginScreen(); return false; }
+      setCurrentUser(me);
+      state.settings.engine = me.active_engine || state.settings.engine;
+      state.settings.theme = me.theme || state.settings.theme;
+      state.settings.alert_threshold = Number(me.alert_threshold ?? state.settings.alert_threshold);
+      applyTheme(state.settings.theme);
+      updateEngineBadges();
+      updateThresholdDisplay();
+      renderAuthState(true);
+      return true;
+    }
+
+    async function loadStatus() {
+      const status = await apiFetch('/api/status');
+      state.status = status;
+      if(state.toggles.power) setStatusBadge(Boolean(status.models_loaded));
+      dom.topbarSubtitle.textContent = `Model engine: ${state.settings.engine} · Threshold ${Math.round(Number(state.settings.alert_threshold) * 100)}%`;
+      updateTopbarSubtitle();
+      updateEngineBadges();
+      updateThresholdDisplay();
+    }
+
+    async function loadSettings() {
+      const response = await apiFetch('/api/settings');
+      const settings = response.settings || {};
+      state.settings.engine = settings.engine || state.settings.engine;
+      state.settings.theme = settings.theme || state.settings.theme;
+      state.settings.alert_threshold = Number(settings.alert_threshold ?? state.settings.alert_threshold);
+      dom.settingsEngine.value = state.settings.engine;
+      if (dom.uploadEngineSelect) dom.uploadEngineSelect.value = state.settings.engine;
+      dom.settingsTheme.value = state.settings.theme;
+      dom.settingsThreshold.value = Number(state.settings.alert_threshold).toFixed(2);
+      updateEngineBadges();
+      updateThresholdDisplay();
+      applyTheme(state.settings.theme);
+    }
+
+    async function loadProfile() {
+      const response = await apiFetch('/api/profile');
+      state.profile = response.profile || {};
+      dom.profileUsernameValue.textContent = state.profile.username || state.user?.username || '--';
+      dom.profileLoginTime.textContent = formatDateTime(state.profile.login_time);
+    }
+
+    async function loadHistory() {
+      const response = await apiFetch('/api/history?limit=500');
+      state.history = Array.isArray(response.alerts) ? response.alerts.map(normalizeRecord) : [];
+      renderHistoryTable(state.history);
+      updateHistoryMetrics();
+      updateThreatSummary();
+      if (state.charts.mix) {
+        state.charts.mix.data.datasets[0].data = Object.values(state.alertSeries);
+        state.charts.mix.update('none');
+      }
+    }
+    
+    async function loadBlockedList() {
+      try {
+        const resp = await apiFetch('/api/blocked');
+        const list = resp.blocked || [];
+        state.blockedIPs = list.map(it => it.ip);
+        
+        dom.blockedList.innerHTML = '';
+        if (list.length === 0) { dom.blockedList.innerHTML = '<div class="muted">No blocked IPs.</div>'; return; }
+        for (const it of list) {
+            const node = document.createElement('div');
+            node.style.display = 'flex'; node.style.justifyContent = 'space-between'; node.style.alignItems = 'center'; node.style.marginBottom = '10px';
+            node.innerHTML = `<div><strong class="mono">${it.ip}</strong><div class="muted" style="font-size:0.8rem">${it.reason || ''} · ${new Date(it.created_at).toLocaleString()}</div></div>
+                <div><button class="danger-btn" data-ip="${it.ip}" data-action="unblock" style="min-width: 90px;">Unblock</button></div>`;
+            dom.blockedList.appendChild(node);
+        }
+      } catch (error) {
+        dom.blockedList.innerHTML = '<div class="muted">Unable to load blocked list.</div>';
+      }
+    }
+    
+    async function blockIp(ip, reason) {
+      try {
+        await apiFetch('/api/blocked', { method: 'POST', body: JSON.stringify({ ip, reason }) });
+        toast(`Blocked ${ip}`, 'error');
+        await loadBlockedList();
+        await loadHistory();
+      } catch (error) { toast(error.message, 'error'); }
+    }
+    
+    async function unblockIp(ip) {
+      try {
+        await apiFetch(`/api/blocked/${encodeURIComponent(ip)}`, { method: 'DELETE' });
+        toast(`Unblocked ${ip}`);
+        await loadBlockedList();
+        await loadHistory();
+      } catch (error) { toast(error.message, 'error'); }
+    }
+    
+    // EXPORT MODAL LOGIC
+    const exportModal = document.getElementById('export-modal');
+    const exportCancel = document.getElementById('export-cancel');
+    const exportConfirm = document.getElementById('export-confirm');
+    const exportLimit = document.getElementById('export-limit');
+    const exportFilter = document.getElementById('export-filter');
+
+    function exportForensicReport() {
+      if (state.history.length === 0) { toast('No history records to export.', 'error'); return; }
+      exportModal.classList.remove('hidden');
+    }
+
+    if(exportCancel) exportCancel.addEventListener('click', () => exportModal.classList.add('hidden'));
+    
+    if(exportConfirm) exportConfirm.addEventListener('click', async () => {
+      exportConfirm.disabled = true;
+      exportConfirm.textContent = "Generating...";
+      
+      try {
+        const limitStr = exportLimit.value === 'all' ? '100000' : exportLimit.value;
+        const response = await apiFetch(`/api/history?limit=${limitStr}`);
+        let dataToExport = response.alerts.map(normalizeRecord);
+
+        if (exportFilter.value === 'threats') {
+          dataToExport = dataToExport.filter(r => r.classification !== 'Normal');
+        }
+
+        if (dataToExport.length === 0) {
+          toast('No records match your filters.', 'error');
+          exportModal.classList.add('hidden');
+          return;
+        }
+
+        let csvContent = "data:text/csv;charset=utf-8,Timestamp,Source IP,Protocol,Classification,Confidence,Model Used\n";
+        dataToExport.forEach(r => {
+          let conf = r.confidence ? (r.confidence * 100).toFixed(2) + '%' : '--';
+          csvContent += `"${r.timestamp}","${r.sourceIP}","${r.protocol}","${r.classification}","${conf}","${r.model_used}"\n`;
+        });
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `IIDS_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast(`Successfully exported ${dataToExport.length} records.`);
+      } catch (error) {
+        toast(`Export failed: ${error.message}`, 'error');
+      } finally {
+        exportConfirm.disabled = false;
+        exportConfirm.textContent = "Generate CSV";
+        exportModal.classList.add('hidden');
+      }
+    });
+
+    async function saveSettings() {
+      const payload = { engine: dom.settingsEngine.value, theme: dom.settingsTheme.value, alert_threshold: Number(dom.settingsThreshold.value) };
+      dom.saveSettings.disabled = true; dom.saveSettings.textContent = 'Saving...';
+      try {
+        const response = await apiFetch('/api/settings', { method: 'POST', body: JSON.stringify(payload) });
+        const settings = response.settings || payload;
+        state.settings.engine = settings.engine || payload.engine;
+        state.settings.theme = settings.theme || payload.theme;
+        state.settings.alert_threshold = Number(settings.alert_threshold ?? payload.alert_threshold);
+        dom.settingsEngine.value = state.settings.engine;
+        if (dom.uploadEngineSelect) dom.uploadEngineSelect.value = state.settings.engine;
+        dom.settingsTheme.value = state.settings.theme;
+        dom.settingsThreshold.value = Number(state.settings.alert_threshold).toFixed(2);
+        applyTheme(state.settings.theme);
+        updateEngineBadges();
+        updateThresholdDisplay();
+        toast('Settings saved and applied.');
+      } finally {
+        dom.saveSettings.disabled = false; dom.saveSettings.textContent = 'Save Settings';
+      }
+    }
+
+    async function loadLiveFeed(manual = false) {
+      if(!state.toggles.power) { if(manual) toast('System is Offline.', 'error'); return; }
+      const data = await apiFetch(`/api/live_feed?engine=${encodeURIComponent(state.settings.engine)}`);
+      const record = normalizeRecord(data);
+      renderLiveSnapshot({ ...record, timestamp: data.timestamp || record.timestamp });
+      const threat = record.classification !== 'Normal';
+      if (threat) state.alertSeries[record.classification] = (state.alertSeries[record.classification] || 0) + 1;
+      else state.alertSeries.Normal += 1;
+      
+      updatePacketMetrics(Math.floor(Math.random() * 70) + 18);
+      if (threat) {
+        state.threatEvents += 1;
+        dom.threatEvents.textContent = state.threatEvents.toLocaleString();
+        dom.statThreats.textContent = state.threatEvents.toLocaleString();
+        dom.threatFootnote.textContent = `${state.threatEvents} threat events observed in this session.`;
+      }
+      state.history.unshift({ timestamp: data.timestamp, sourceIP: data.sourceIP, protocol: data.protocol, classification: data.classification, confidence: data.confidence, model_used: data.model_used });
+      state.history = state.history.slice(0, 500);
+      renderHistoryTable(state.history);
+      updateHistoryMetrics();
+      updateThreatSummary();
+      
+      // Update Doughnut silently
+      if (state.charts.mix) {
+        state.charts.mix.data.datasets[0].data = Object.values(state.alertSeries);
+        state.charts.mix.update('none');
+      }
+
+      if (manual) toast(`Live sample classified as ${record.classification}.`);
+      return data;
+    }
+
+    async function scanUpload() {
+      if (!state.files.selected) { toast('Select a CSV file first.', 'error'); return; }
+      const formData = new FormData();
+      formData.append('file', state.files.selected);
+
+      const selectedEngine = dom.uploadEngineSelect ? dom.uploadEngineSelect.value : state.settings.engine;
+      formData.append('engine', selectedEngine);
+
+      dom.scanFile.disabled = true;
+      dom.uploadStatus.textContent = 'Scanning uploaded traffic...';
+      if (dom.downloadScanBtn) dom.downloadScanBtn.classList.add('hidden');
+
+      try {
+        const response = await apiFetch('/api/upload_scan', { method: 'POST', body: formData, headers: {} });
+        const breakdown = response.breakdown || {};
+        const values = ['Normal', 'DoS', 'Probe', 'R2L', 'U2R'].map((label) => Number(breakdown[label] || 0));
+
+        state.lastScanData = breakdown;
+
+        if (state.charts.upload) { state.charts.upload.data.datasets[0].data = values; state.charts.upload.update(); }
+        const totalThreats = values.slice(1).reduce((sum, value) => sum + value, 0);
+        dom.uploadStatus.textContent = `Scan complete. ${response.total} rows processed.`;
+        dom.uploadOutcome.textContent = totalThreats > 0 ? `${totalThreats} threats detected` : 'No threats detected';
+
+        if (dom.downloadScanBtn) dom.downloadScanBtn.classList.remove('hidden');
+
+        toast(`Scan complete via ${selectedEngine.toUpperCase()}`);
+        await loadHistory();
+      } catch (error) {
+        dom.uploadStatus.textContent = `Scan failed: ${error.message}`;
+        toast(error.message, 'error');
+      } finally { dom.scanFile.disabled = false; }
+    }
+
+    async function bootstrapApplication() {
+      try {
+        const sessionReady = await loadSession();
+        if (!sessionReady) return;
+        await loadSettings();
+        await Promise.all([loadStatus(), loadProfile(), loadHistory()]);
+        await loadBlockedList();
+        ensureCharts();
+        refreshChartStyles();
+        renderAuthState(true);
+        startTimers();
+        await loadLiveFeed(false);
+        setLoginError('');
+      } catch (error) { await showLoginScreen(error.message || 'Unable to load dashboard.'); }
+    }
+
+    function stopTimers() {
+      if (state.liveFeedTimer) { clearInterval(state.liveFeedTimer); state.liveFeedTimer = null; }
+      if (state.historyTimer) { clearInterval(state.historyTimer); state.historyTimer = null; }
+    }
+
+    function startTimers() {
+      stopTimers();
+      if (state.toggles.autoRefresh && state.toggles.power) {
+        state.liveFeedTimer = setInterval(() => loadLiveFeed(false).catch(() => {}), 5000);
+        state.historyTimer = setInterval(() => loadHistory().catch(() => {}), 15000);
+      }
+    }
+
+    async function submitLogin(event) {
+      event.preventDefault();
+      dom.loginSubmit.disabled = true; dom.loginSubmit.innerHTML = '<span class="spinner"></span> Authenticating';
+      setLoginError('');
+      try {
+        await apiFetch('/api/login', { method: 'POST', body: JSON.stringify({ username: dom.loginUsername.value, password: dom.loginPassword.value }) });
+        await bootstrapApplication();
+        toast('Authenticated successfully.');
+      } catch (error) { setLoginError(error.message || 'Login failed.'); } 
+      finally { dom.loginSubmit.disabled = false; dom.loginSubmit.textContent = 'Authenticate'; }
+    }
+
+    async function logout() {
+      try { await apiFetch('/api/logout', { method: 'POST', body: JSON.stringify({}) }); } catch (error) {}
+      stopTimers(); state.history = []; state.profile = null; state.user = null;
+      renderAuthState(false); setLoginError('You have been logged out.'); dom.loginPassword.value = '';
+    }
+
+    function setActiveView(viewId) {
+      dom.views.forEach((section) => section.classList.toggle('active', section.id === viewId));
+      dom.navButtons.forEach((button) => button.classList.toggle('active', button.dataset.view === viewId));
+    }
+
+    // NEW: Robust Toggle that actively stops the clock
+    function updateToggleState(button, key) {
+      state.toggles[key] = !state.toggles[key];
+      button.classList.toggle('on', state.toggles[key]);
+      button.setAttribute('aria-pressed', String(state.toggles[key]));
+      
+      if(key === 'power') {
+         setStatusBadge(state.toggles.power);
+         if(state.toggles.power) { startTimers(); toast('System Online.'); } 
+         else { stopTimers(); toast('System Offline.', 'error'); }
+      }
+
+      if(key === 'autoRefresh') {
+         if(state.toggles.autoRefresh && state.toggles.power) {
+             startTimers();
+             toast('Auto-Refresh Resumed.');
+         } else {
+             stopTimers();
+         }
+      }
+    }
+    
+    // CUSTOM MODAL LOGIC
+    function openSecurityModal(ip, proto, classification, conf, model) {
+      state.targetIPToBlock = ip;
+      dom.modalIp.textContent = ip;
+      dom.modalClass.textContent = classification;
+      dom.modalModel.textContent = model;
+      dom.modalConf.textContent = conf;
+      dom.securityModal.classList.remove('hidden');
+    }
+    function closeSecurityModal() {
+      state.targetIPToBlock = null;
+      dom.securityModal.classList.add('hidden');
+    }
+    if (dom.modalCancel) dom.modalCancel.addEventListener('click', closeSecurityModal);
+    if (dom.modalConfirm) {
+      dom.modalConfirm.addEventListener('click', () => {
+        if(state.targetIPToBlock) blockIp(state.targetIPToBlock);
+        closeSecurityModal();
+      });
+    }
+
+    function bindUploadControls() {
+      if (dom.browseFile) dom.browseFile.addEventListener('click', () => dom.trafficFile.click());
+      if (dom.clearFile) dom.clearFile.addEventListener('click', () => setSelectedFile(null));
+      if (dom.scanFile) dom.scanFile.addEventListener('click', scanUpload);
+      if (dom.downloadScanBtn) {
+        dom.downloadScanBtn.addEventListener('click', () => {
+          if (!state.lastScanData) return;
+          let content = 'data:text/csv;charset=utf-8,Attack Class,Packet Count\n';
+          for (const [key, value] of Object.entries(state.lastScanData)) {
+            content += `${key},${value}\n`;
+          }
+          const encodedUri = encodeURI(content);
+          const link = document.createElement('a');
+          link.setAttribute('href', encodedUri);
+          link.setAttribute('download', `scan_summary_${new Date().getTime()}.csv`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          toast('Scan summary downloaded!');
+        });
+      }
+      if (dom.liveSampleBtn) dom.liveSampleBtn.addEventListener('click', () => loadLiveFeed(true).catch((error) => toast(error.message, 'error')));
+      if (dom.runLiveFeedBtn) dom.runLiveFeedBtn.addEventListener('click', () => loadLiveFeed(true).catch((error) => toast(error.message, 'error')));
+      
+      //  NEW: Robust Refresh Dashboard Button
+      if (dom.refreshDashboardBtn) {
+        dom.refreshDashboardBtn.addEventListener('click', async () => {
+          dom.refreshDashboardBtn.disabled = true;
+          dom.refreshDashboardBtn.textContent = 'Syncing...';
+          try {
+            await Promise.all([loadStatus(), loadHistory(), loadProfile()]);
+            toast('Dashboard synchronized with backend.');
+          } catch (error) {
+            toast(error.message, 'error');
+          } finally {
+            dom.refreshDashboardBtn.disabled = false;
+            dom.refreshDashboardBtn.textContent = 'Refresh Data';
+          }
+        });
+      }
+
+      //  NEW: Smart Refresh History Button
+      if (dom.refreshHistoryBtn) {
+        dom.refreshHistoryBtn.addEventListener('click', () => {
+          loadHistory().catch((error) => toast(error.message, 'error'));
+          // If auto-refresh was paused by clicking a chart, turn it back on safely!
+          if (!state.toggles.autoRefresh) {
+            dom.toggleAutoRefresh.click(); 
+          }
+          toast('History cleared and Live Feed resumed.');
+        });
+      }
+
+      if (dom.saveSettings) dom.saveSettings.addEventListener('click', () => saveSettings().catch((error) => toast(error.message, 'error')));
+      if (dom.resetSettings) dom.resetSettings.addEventListener('click', () => { dom.settingsEngine.value = state.settings.engine; dom.settingsTheme.value = state.settings.theme; dom.settingsThreshold.value = Number(state.settings.alert_threshold).toFixed(2); updateThresholdDisplay(); });
+      
+      if (dom.toggleAutoRefresh) dom.toggleAutoRefresh.addEventListener('click', () => updateToggleState(dom.toggleAutoRefresh, 'autoRefresh'));
+      if (dom.toggleAlertToasts) dom.toggleAlertToasts.addEventListener('click', () => updateToggleState(dom.toggleAlertToasts, 'alertToasts'));
+      if (dom.togglePower) dom.togglePower.addEventListener('click', () => updateToggleState(dom.togglePower, 'power'));
+      
+      if (dom.themeToggle) dom.themeToggle.addEventListener('click', cycleTheme);
+      if (dom.loginThemeToggle) dom.loginThemeToggle.addEventListener('click', cycleTheme);
+      if (dom.logoutButtons) dom.logoutButtons.forEach((button) => button.addEventListener('click', logout));
+      if (dom.sidebarToggle) dom.sidebarToggle.addEventListener('click', () => document.querySelector('.sidebar').classList.toggle('hidden'));
+      if (dom.navButtons) dom.navButtons.forEach((button) => button.addEventListener('click', () => setActiveView(button.dataset.view)));
+      
+      if (dom.settingsThreshold) dom.settingsThreshold.addEventListener('input', () => { state.settings.alert_threshold = Number(dom.settingsThreshold.value); updateThresholdDisplay(); });
+      if (dom.settingsEngine) dom.settingsEngine.addEventListener('change', () => { state.settings.engine = dom.settingsEngine.value; updateEngineBadges(); saveSettings().catch((error) => toast(error.message, 'error')); });
+      if (dom.settingsTheme) dom.settingsTheme.addEventListener('change', () => { applyTheme(dom.settingsTheme.value); saveSettings().catch((error) => toast(error.message, 'error')); });
+      if (dom.reloadApp) dom.reloadApp.addEventListener('click', () => bootstrapApplication());
+      if (dom.loginForm) dom.loginForm.addEventListener('submit', submitLogin);
+      if (dom.trafficFile) dom.trafficFile.addEventListener('change', (event) => setSelectedFile(event.target.files && event.target.files[0] ? event.target.files[0] : null));
+      
+      if (dom.uploadZone) {
+        dom.uploadZone.addEventListener('dragover', (event) => { event.preventDefault(); dom.uploadZone.classList.add('dragover'); });
+        dom.uploadZone.addEventListener('dragleave', () => dom.uploadZone.classList.remove('dragover'));
+        dom.uploadZone.addEventListener('drop', (event) => { event.preventDefault(); dom.uploadZone.classList.remove('dragover'); const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0] ? event.dataTransfer.files[0] : null; if (file) setSelectedFile(file); });
+      }
+
+      if (dom.blockIpButton) {
+        dom.blockIpButton.addEventListener('click', () => {
+          const ip = dom.blockIpInput.value && dom.blockIpInput.value.trim();
+          if (!ip) return toast('Enter an IP to block', 'error');
+          openSecurityModal(ip, '--', 'Manual Entry', '--', '--');
+          dom.blockIpInput.value = '';
+        });
+      }
+      
+      if (dom.downloadDataset) dom.downloadDataset.addEventListener('click', () => exportForensicReport());
+
+      // Delegate history action buttons
+      if (dom.historyTable) {
+        dom.historyTable.addEventListener('click', (ev) => {
+          const btn = ev.target.closest('button');
+          if (btn) {
+              const ip = btn.dataset.ip;
+              if (btn.dataset.action === 'block') openSecurityModal(ip, btn.dataset.proto, btn.dataset.class, btn.dataset.conf, btn.dataset.mod);
+              else unblockIp(ip);
+          }
+          // IP Click to copy
+          if (ev.target.classList.contains('clickable-ip')) {
+              navigator.clipboard.writeText(ev.target.dataset.ip);
+              toast('Copied IP: ' + ev.target.dataset.ip);
+          }
+        });
+      }
+
+      // Delegate Settings list unblock buttons
+      if (dom.blockedList) {
+        dom.blockedList.addEventListener('click', (ev) => {
+          const btn = ev.target.closest('button');
+          if (btn && btn.dataset.action === 'unblock') unblockIp(btn.dataset.ip);
+        });
+      }
+    }
+
+    function setSelectedFile(file) {
+      state.files.selected = file;
+      if (!file) {
+        dom.uploadMeta.classList.add('hidden'); 
+        dom.scanFile.disabled = true; 
+        dom.uploadStatus.textContent = 'Awaiting CSV input'; 
+        if (dom.uploadOutcome) dom.uploadOutcome.textContent = 'No action yet';
+        dom.fileName.textContent = 'No file selected'; 
+        dom.fileSize.textContent = '0 B'; 
+        dom.trafficFile.value = ''; 
+        
+        if(dom.downloadScanBtn) dom.downloadScanBtn.classList.add('hidden');
+        
+        if (state.charts.upload) {
+            state.charts.upload.data.datasets[0].data = [0, 0, 0, 0, 0];
+            state.charts.upload.update();
+        }
+        return;
+      }
+      dom.uploadMeta.classList.remove('hidden'); 
+      dom.scanFile.disabled = false; 
+      dom.uploadStatus.textContent = `Selected ${file.name}`; 
+      dom.fileName.textContent = file.name; 
+      dom.fileSize.textContent = formatBytes(file.size);
+    }
+
+    function assistantScrollToBottom() { dom.assistantThread.scrollTop = dom.assistantThread.scrollHeight; }
+
+    function appendAssistantMessage(role, text) {
+      state.assistant.messages.push({ role, text });
+      const bubble = document.createElement('div');
+      bubble.className = `assistant-message ${role}`;
+      bubble.textContent = text;
+      dom.assistantThread.appendChild(bubble);
+      assistantScrollToBottom();
+    }
+
+    function resetAssistantThread() {
+      dom.assistantThread.innerHTML = ''; state.assistant.messages = [];
+      appendAssistantMessage('bot', 'I can explain attack classes, help you navigate the dashboard, and describe the active engine. Try a prompt below or ask your own question.');
+    }
+
+    function toggleAssistant(open) {
+      state.assistant.open = typeof open === 'boolean' ? open : !state.assistant.open;
+      dom.assistantPanel.classList.toggle('hidden', !state.assistant.open);
+      dom.assistantLauncher.classList.toggle('hidden', state.assistant.open);
+      if (state.assistant.open) dom.assistantInput.focus();
+    }
+
+    function buildAssistantResponse(input) {
+      const text = input.trim().toLowerCase();
+      if (!text) return 'Ask me about a threat class, a dashboard view, or how the active engine works.';
+      if (/(what is|explain).*(dos|denial of service)/.test(text)) return 'A DoS attack aims to overwhelm a service or resource so legitimate users cannot access it. In IDS terms, it usually shows repeated requests, high volume, and abnormal traffic concentration.';
+      if (/(what is|explain).*(probe|scanning|port scan)/.test(text)) return 'A Probe attack is reconnaissance. The attacker scans hosts, ports, or services to map vulnerabilities before launching a larger intrusion.';
+      if (/(what is|explain).*(r2l|remote to local)/.test(text)) return 'R2L means Remote to Local. The attacker starts remotely and tries to gain local access, often through weak credentials or exposed services.';
+      if (/(what is|explain).*(u2r|user to root)/.test(text)) return 'U2R means User to Root. The attacker already has limited local access and tries to escalate privileges to root or administrator level.';
+      if (/(cnn-lstm|cnn lstm)/.test(text)) return 'CNN-LSTM combines convolutional layers for feature extraction with LSTM layers for sequence-aware pattern learning. In IIDS it serves as the deep model when RF confidence is not enough or when CNN-only mode is selected.';
+      if (/(random forest|rf only|rf)/.test(text)) return 'Random Forest is the fast baseline classifier. Hybrid mode uses it first and falls back to CNN-LSTM if confidence is below the active threshold.';
+      if (/(engine|hybrid|cnn_only|rf_only|threshold)/.test(text)) return 'Open Settings to change the active engine, theme, and alert threshold. Hybrid routes through RF first, RF-only locks to the classical model, and CNN-only uses the deep model directly.';
+      if (/(csv|upload)/.test(text)) return 'Go to Network Traffic, choose a CSV file, or drag and drop it into the scanner. The backend validates the NSL-KDD-style columns before running inference.';
+      return 'I can help with cybersecurity terms, model behavior, or dashboard navigation. Try asking: "What is a DoS attack?", "How do I upload a CSV?", or "How do I change the engine?"';
+    }
+
+    function handleAssistantSubmit(promptText) {
+      const text = (promptText || dom.assistantInput.value).trim();
+      if (!text) return;
+      appendAssistantMessage('user', text);
+      window.setTimeout(() => appendAssistantMessage('bot', buildAssistantResponse(text)), 180);
+      dom.assistantInput.value = '';
+    }
+
+    function bindAssistantControls() {
+      dom.assistantClose.addEventListener('click', () => toggleAssistant(false));
+      dom.assistantSend.addEventListener('click', () => handleAssistantSubmit());
+      dom.assistantInput.addEventListener('keydown', (event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); handleAssistantSubmit(); } });
+      dom.assistantPrompts.forEach((button) => { button.addEventListener('click', () => handleAssistantSubmit(button.dataset.prompt || button.textContent || '')); });
+
+      // DRAGGING LOGIC (Applied to the closed LAUNCHER)
+      let isDraggingLauncher = false;
+      let hasDragged = false;
+      let offsetX = 0, offsetY = 0;
+
+      dom.assistantLauncher.addEventListener('mousedown', (e) => {
+        if (state.assistant.open) return; 
+        isDraggingLauncher = true;
+        hasDragged = false;
+        const rect = dom.assistantLauncher.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDraggingLauncher || state.assistant.open) return;
+        hasDragged = true; // They actually moved it
+        let finalX = e.clientX - offsetX;
+        let finalY = e.clientY - offsetY;
+        const maxX = window.innerWidth - dom.assistantLauncher.offsetWidth - 10;
+        const maxY = window.innerHeight - dom.assistantLauncher.offsetHeight - 10;
+        dom.assistantLauncher.style.left = Math.max(10, Math.min(finalX, maxX)) + 'px';
+        dom.assistantLauncher.style.top = Math.max(10, Math.min(finalY, maxY)) + 'px';
+        dom.assistantLauncher.style.right = 'auto'; dom.assistantLauncher.style.bottom = 'auto';
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (isDraggingLauncher) {
+          isDraggingLauncher = false;
+          if (!hasDragged) {
+            toggleAssistant(true);
+          } else {
+             // SNAP TO NEAREST CORNER
+             const rect = dom.assistantLauncher.getBoundingClientRect();
+             const cx = rect.left + rect.width / 2;
+             const cy = rect.top + rect.height / 2;
+             const snapRight = cx > window.innerWidth / 2;
+             const snapBottom = cy > window.innerHeight / 2;
+             
+             dom.assistantLauncher.style.left = snapRight ? 'auto' : '20px';
+             dom.assistantLauncher.style.right = snapRight ? '20px' : 'auto';
+             dom.assistantLauncher.style.top = snapBottom ? 'auto' : '20px';
+             dom.assistantLauncher.style.bottom = snapBottom ? '20px' : 'auto';
+
+             // Panel follows snap
+             dom.assistantPanel.style.left = snapRight ? 'auto' : '20px';
+             dom.assistantPanel.style.right = snapRight ? '20px' : 'auto';
+             dom.assistantPanel.style.top = snapBottom ? 'auto' : '80px';
+             dom.assistantPanel.style.bottom = snapBottom ? '80px' : 'auto';
+          }
+        }
+      });
+    }
+
+    function initClock() {
+      const updateClock = () => {
+        const now = new Date();
+        dom.topbarSubtitle.textContent = `${now.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric' })} · ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      };
+      updateClock(); setInterval(updateClock, 60000);
+    }
+
+    async function initialize() {
+      const savedTheme = localStorage.getItem('iids-theme');
+      applyTheme(savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system' ? savedTheme : 'system');
+      bindAssistantControls();
+      resetAssistantThread();
+      bindUploadControls();
+      initClock();
+      ensureCharts();
+      refreshChartStyles();
+      try {
+        const me = await apiFetch('/api/me');
+        if (me.authenticated) { await bootstrapApplication(); } 
+        else { await showLoginScreen(); }
+      } catch (error) { await showLoginScreen(); }
+      updateEngineBadges();
+      updateThresholdDisplay();
+    }
+
+    initialize();
+  </script>
+</body>
+</html>
