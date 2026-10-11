@@ -1,0 +1,14 @@
+services:
+  iids-backend:
+    build: .
+    container_name: iids-backend
+    ports:
+      - "5001:5000"
+    environment:
+      - FLASK_ENV=production
+      - IIDS_ADMIN_USERNAME=admin
+      - IIDS_ADMIN_PASSWORD=admin
+      - IIDS_SECRET_KEY=iids-production-secure-key-2026
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
