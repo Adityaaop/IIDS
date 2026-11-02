@@ -11,9 +11,10 @@ The system uses a two-stage approach:
 ## Contributors
 
 - **Aditya Ranjan Kumar** ([@Adityaaop](https://github.com/Adityaaop)) - Frontend dashboard, real-time Chart.js telemetry, operator session controls
+- **Vikash Kumar** ([@hey-sirii](https://github.com/hey-sirii)) - SQLite forensics database, attack taxonomy mapping, IP blocking mitigation
 - **Aditya Kumar Laur** ([@adityaklaur](https://github.com/adityaklaur)) - Flask backend API, hybrid model decision pipeline, Docker setup, pytest test suite
 - **Aakar Singh** ([@aakarrr](https://github.com/aakarrr)) - NSL-KDD dataset preprocessing, feature scaling (StandardScaler), 1D-CNN + LSTM model
-- **Vikash Kumar** ([@hey-sirii](https://github.com/hey-sirii)) - SQLite forensics database, attack taxonomy mapping, IP blocking mitigation
+
 
 ---
 
